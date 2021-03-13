@@ -1,0 +1,7 @@
+GS = input()
+# a = GS.count('g')
+# b = GS.count('G')
+# c = GS.count('c')
+# d = GS.count('C')
+# print((a+b+c+d)/len(GS)*100)
+print((GS.lower().count('g') + GS.lower().count('c')) / len(GS) * 100)

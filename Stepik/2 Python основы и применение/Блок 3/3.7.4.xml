@@ -1,0 +1,6 @@
+<cube color="blue">
+    <cube color="red">
+        <cube color="green"></cube>
+    </cube>
+    <cube color="red"></cube>
+</cube>
