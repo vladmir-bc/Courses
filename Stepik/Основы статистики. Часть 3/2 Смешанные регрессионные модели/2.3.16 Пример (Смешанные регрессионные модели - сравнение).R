@@ -1,0 +1,149 @@
+library(lme4)  # пакет для создания смешанных регрессионных моделей
+
+# Создадим регрессионные модели со смешанными эффектами
+
+# lmer(DV ~ FE + (1 + FE | RE), data = my_data)  # linear mixed effect regression
+# (1 + FE | RE) - позволяет для случайного эффекта (random effect) задать свободный член, который 
+# обозначается 1, и угловой коэффициент для этого случайного эффекта
+
+
+# для примеров используем следующий датасэт
+library(mlmRev)
+
+data("Exam")
+
+str(Exam)
+help(Exam)
+# standLRT - вступительный экзамен, который сдавали при поступлении
+# normexam - нормализованная оценка выпускного экзамена школьников
+
+# будем изучать то, как связана вступительная оценка с выпускной
+
+library(ggplot2)
+ggplot(data = Exam, aes(x = standLRT, y = normexam)) + 
+  geom_point()
+# имеется взаимосвязь
+
+
+ggplot(data = Exam, aes(x = standLRT, y = normexam, col = school)) + 
+  geom_point()
+
+
+# Начнем моделировать. Для начала создадим простую линейную регрессию
+# Один главный эффект
+
+Model1 <- lm(normexam ~ standLRT, data = Exam)
+summary(Model1)  # standLRT - статистически значимо предсказывает выпускной экзамен
+
+# Чтобы посмотреть один из способов, как можно нанести показания на график
+# и построить регрессионную прямую на графике, мы выполняем следующее:
+
+Exam$Model1_pred <- predict(Model1)
+
+# строим график
+
+ggplot(data = Exam, aes(x = standLRT, y = normexam)) + 
+  geom_point() + 
+  geom_line(data = Exam, aes(x = standLRT, y = Model1_pred), col = 'blue', size = 1)
+
+# теперь используем lmer
+
+# Model1 <- lmer(normexam ~ standLRT, data = Exam)  # в модели также необходимо указать случайные эффекты
+
+
+# Построим модель со случайным эффектом
+# Главный эффект + случайный свободный член
+
+Model2 <- lmer(normexam ~ standLRT + (1|school), data = Exam)  # добавили случайный эффект
+# случайный эффект: мы хотим посмотреть, как преломляется наш основной эффект
+# точнее мы хотим учесть тот факт, что регрессионная прямая, которую мы получили
+# может выглядеть по-разному для разных школ. Посмотрим различный свободный член для
+# каждой школы
+summary(Model2)
+# чем выше дисперсия случайного эффекта, тем больший вклад в оценку основного эффекта он дает
+# p.value отсутствует, но есть правило, если t-значение больше 2, то скорее всего эффект значимый
+
+# визуализируем полученные данные
+Exam$Model2_pred <- predict(Model2)
+ggplot(data = Exam, aes(x = standLRT, y = normexam)) + 
+  geom_point(alpha = 0.2) + 
+  geom_line(data = Exam, aes(x = standLRT, y = Model2_pred, col = school))
+# Предсказания теперь выглядят как много регрессионных прямых для отдельных школ
+# регрессионные прямые на самом деле параллельны
+
+
+# Попробуем посмотреть, каким образом можно учесть тот факт, что взаимосвязь между 
+# вступительным и выпускным экзаменом в разных школах также может различаться
+
+# Построим модель:
+# Главный эффект + случайный свободный член + случайный угловой коэффициент
+# угловой коэффициент задается добавлением имени НП фиксированного эффекта
+# в те же скобки, где определены случайные эффекты модели
+
+Model3 <- lmer(normexam ~ standLRT + (1 + standLRT|school), data = Exam)
+summary(Model3)
+
+Exam$Model3_pred <- predict(Model3)
+ggplot(data = Exam, aes(x = standLRT, y = normexam)) + 
+  geom_point(alpha = 0.2) + 
+  geom_line(data = Exam, aes(x = standLRT, y = Model3_pred, col = school))
+# регрессионные прямые не только отличаются свободным членом,
+# но также и углом наклона
+# для каждой школы мы сделали свою регрессионную модель
+
+# в предыдущих примерах мы построили модели, одна из которых учитывала
+# только свободный член, а вторая учитывала свободный член и угловой коэффициент
+
+
+# А что если мы предполагаем, что свободный член для случайного эффекта
+# не очень важен, а вот угловой коэффициент важен
+# Мы можем это учесть в модели. Построим:
+
+Model4 <- lmer(normexam ~ standLRT + (0 + standLRT|school), data = Exam)
+summary(Model4)
+
+Exam$Model4_pred <- predict(Model4)
+ggplot(data = Exam, aes(x = standLRT, y = normexam)) + 
+  geom_point(alpha = 0.2) + 
+  geom_line(data = Exam, aes(x = standLRT, y = Model4_pred, col = school))
+# отличается угловой коэффициент, но свободный член не отличается
+# поэтому все линии в нуле на одной точке
+
+
+# Если же мы исходим из того, что скоррелированности случайных эффектов нет,
+# необходимо иначе записать формулу:
+# случайный свободный член нужно записать отдельно от углового коэффициента
+
+Model5 <- lmer(normexam ~ standLRT + (1|school) + (0 + standLRT|school), data = Exam)
+summary(Model5)
+###################################################################################
+
+example_fit2 <-lm(standLRT ~ normexam + school, data = Exam)
+summary(example_fit2)
+Exam$example_fit2 <- predict(example_fit2)
+ggplot(data = Exam, aes(x = standLRT, y = normexam)) + 
+  geom_point(alpha = 0.2) + 
+  geom_line(data = Exam, aes(x = standLRT, y = example_fit2, col = school))
+# Модель, предсказывающая standLRT по normexam с учётом того, что все школы различаются 
+# по среднему уровню сдачи выпускного экзамена (один случайный эффект: свободный член по переменной “school”)
+
+example_fit4 <- lm(standLRT ~ normexam + school:normexam, data = Exam)
+summary(example_fit4)
+Exam$example_fit4 <- predict(example_fit4)
+ggplot(data = Exam, aes(x = standLRT, y = normexam)) + 
+  geom_point(alpha = 0.2) + 
+  geom_line(data = Exam, aes(x = standLRT, y = example_fit4, col = school))
+# Модель, предсказывающая standLRT по normexam с учётом того, что разные школы отличаются 
+# по взаимосвязи между предиктором и зависимой переменной (один случайный эффект: 
+# угловой коэффициент по переменной “school”)
+
+example_fit3 <- lm(standLRT ~ normexam*school, data = Exam)
+summary(example_fit3)
+Exam$example_fit3 <- predict(example_fit3)
+ggplot(data = Exam, aes(x = standLRT, y = normexam)) + 
+  geom_point(alpha = 0.2) + 
+  geom_line(data = Exam, aes(x = standLRT, y = example_fit3, col = school))
+# Модель, предсказывающая standLRT по normexam с учётом того, 
+# что разные школы отличаются по среднему уровню сдачи выпускного экзамена, 
+# а также по взаимосвязи между предиктором и зависимой переменной 
+# (два случайных эффекта: свободный член и угловой коэффициент по переменной “school”)
