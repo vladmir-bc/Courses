@@ -1,2 +1,2 @@
 # Courses
-Tasks from online courses
+Tasks from online courses (Stepik etc)
