@@ -1,2 +1,2 @@
 # Courses
-Tasks from online courses (Stepik etc)
+В репозиторий будут выкладываться решения заданий с онлайн курсов.
